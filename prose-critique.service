@@ -1,0 +1,22 @@
+[Unit]
+Description=Prose Critique Web UI
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=%h/prose-critique
+
+ExecStart=/usr/bin/podman run --rm \
+    --name prose-critique \
+    --network host \
+    --env-file %h/prose-critique/.env \
+    -v %h/prose-critique/workspace:/app/workspace:z \
+    -v %h/prose-critique/config.json:/app/config.json:ro \
+    prose-critique:latest
+
+ExecStop=/usr/bin/podman stop prose-critique
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,31 @@
+{
+  "max_input_chars": 8192,
+  "max_report_chars": 65536,
+  "models": {
+    "primary": {
+      "model": "claude-sonnet-4.5",
+      "temperature": 0.3,
+      "max_tokens": 16384,
+      "timeout": 420,
+      "retries": 2
+    },
+    "audit": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.2,
+      "top_p": 1.0,
+      "max_tokens": 8192,
+      "timeout": 180,
+      "retries": 2
+    }
+  },
+  "provider": "litellm",
+  "litellm": {
+    "base_url": "http://alma:4000",
+    "api_key": ""
+  },
+  "enable_audit": true,
+  "enable_cache": false,
+  "verbosity": 1,
+  "store_prompts": false,
+  "redact_secrets": true
+}

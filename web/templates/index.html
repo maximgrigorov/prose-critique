@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<header>
+    <h1>Prose Critique</h1>
+    <p class="subtitle">LLM-powered prose analysis and critique tool</p>
+</header>
+
+<main>
+    <div class="grid">
+        <!-- Left panel: Input -->
+        <section class="panel input-panel">
+            <h2>Input Text</h2>
+            <div class="textarea-wrapper">
+                <textarea id="text-input"
+                    placeholder="Paste your prose text here (up to 8192 characters)..."
+                    maxlength="8192"></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span> / <span id="char-limit">8192</span>
+                </div>
+            </div>
+
+            <h3>Requirements <span class="optional">(optional)</span></h3>
+            <textarea id="requirements-input"
+                placeholder="Tone, audience, genre, style constraints, e.g. 'avoid clichés, formal tone, academic audience'..."
+                rows="3"></textarea>
+
+            <details class="config-section">
+                <summary>Configuration</summary>
+                <div class="config-form">
+                    <div class="form-row">
+                        <label for="cfg-provider">Provider</label>
+                        <select id="cfg-provider">
+                            <option value="openai" selected>OpenAI</option>
+                            <option value="litellm">LiteLLM</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-primary-model">Primary Model</label>
+                        <input type="text" id="cfg-primary-model" value="gpt-4o">
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-primary-temp">Temperature</label>
+                        <input type="number" id="cfg-primary-temp" value="0.3" step="0.1" min="0" max="2">
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-primary-tokens">Max Tokens</label>
+                        <input type="number" id="cfg-primary-tokens" value="16384" step="1024" min="1024">
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-audit-model">Audit Model</label>
+                        <input type="text" id="cfg-audit-model" value="gpt-4o-mini">
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-enable-audit">Enable Audit</label>
+                        <input type="checkbox" id="cfg-enable-audit" checked>
+                    </div>
+                    <div class="form-row">
+                        <label for="cfg-enable-cache">Enable Cache</label>
+                        <input type="checkbox" id="cfg-enable-cache">
+                    </div>
+                </div>
+            </details>
+
+            <div class="actions">
+                <button id="btn-analyze" class="btn-primary">Analyze</button>
+                <button id="btn-cancel" class="btn-secondary" disabled>Cancel</button>
+            </div>
+
+            <div id="progress-area" class="progress-area hidden">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div id="progress-text" class="progress-text">Starting...</div>
+            </div>
+        </section>
+
+        <!-- Right panel: Results -->
+        <section class="panel results-panel">
+            <div class="tabs">
+                <button class="tab active" data-tab="report">Report</button>
+                <button class="tab" data-tab="json">JSON</button>
+                <button class="tab" data-tab="logs">Logs</button>
+                <button class="tab" data-tab="runs">History</button>
+            </div>
+
+            <div id="export-actions" class="actions no-print" style="display: none; margin-bottom: 12px;">
+                <button id="pdf-btn" class="btn-secondary" title="Export report as PDF">&#128196; PDF</button>
+                <button id="print-btn" class="btn-secondary" onclick="window.print()" title="Print report">&#128424; Print</button>
+            </div>
+
+            <div id="tab-report" class="tab-content active">
+                <div id="report-content" class="report-content">
+                    <p class="placeholder">Results will appear here after analysis.</p>
+                </div>
+            </div>
+
+            <div id="tab-json" class="tab-content">
+                <div id="json-content" class="json-content">
+                    <pre id="json-tree" class="json-tree"></pre>
+                </div>
+            </div>
+
+            <div id="tab-logs" class="tab-content">
+                <div id="logs-content" class="logs-content">
+                    <pre id="log-text" class="log-text"></pre>
+                </div>
+            </div>
+
+            <div id="tab-runs" class="tab-content">
+                <div id="runs-list" class="runs-list">
+                    <p class="placeholder">No previous runs.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<footer>
+    <p>prose-critique v1.0.0 &middot; Local-first &middot; Open Source</p>
+</footer>
+
+<script>
+    const URL_PREFIX = "{{ url_prefix }}";
+</script>
+{% endblock %}
