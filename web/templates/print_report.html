@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="{{ report.language }}">
+<head>
+<meta charset="utf-8">
+<title>Prose Critique — Report {{ run_id }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 15mm 18mm 15mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1f2937;
+    margin: 0;
+    padding: 0;
+  }
+  h1 { font-size: 16pt; margin: 0 0 6pt; color: #111827; }
+  h2 { font-size: 13pt; margin: 14pt 0 6pt; color: #374151; border-bottom: 1.5pt solid #e5e7eb; padding-bottom: 3pt; }
+  h3 { font-size: 11pt; margin: 10pt 0 4pt; color: #6b7280; }
+  h4 { font-size: 10pt; margin: 8pt 0 3pt; color: #6b7280; }
+
+  .header { border-bottom: 2pt solid #6366f1; padding-bottom: 8pt; margin-bottom: 12pt; }
+  .header-meta { display: flex; gap: 24pt; flex-wrap: wrap; font-size: 9pt; color: #6b7280; margin-top: 4pt; }
+  .header-meta strong { color: #1f2937; }
+
+  .score-badge {
+    display: inline-block;
+    background: #6366f1;
+    color: white;
+    font-size: 14pt;
+    font-weight: 700;
+    padding: 3pt 10pt;
+    border-radius: 4pt;
+    margin-right: 8pt;
+  }
+
+  pre, .text-block {
+    background: #fefce8;
+    border: 0.5pt solid #fde68a;
+    border-radius: 4pt;
+    padding: 8pt 10pt;
+    font-family: 'SF Mono', 'Cascadia Code', 'Menlo', 'Consolas', monospace;
+    font-size: 9pt;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .prompt-block {
+    background: #f1f5f9;
+    border: 0.5pt solid #cbd5e1;
+    font-size: 7.5pt;
+    line-height: 1.4;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    margin: 4pt 0 8pt;
+  }
+  th, td {
+    padding: 3pt 5pt;
+    text-align: left;
+    border-bottom: 0.5pt solid #e5e7eb;
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #f9fafb;
+  }
+  .total-row td { border-top: 1.5pt solid #1f2937; font-weight: 600; }
+
+  .score-bar {
+    display: inline-block;
+    height: 7pt;
+    background: #6366f1;
+    border-radius: 3pt;
+    min-width: 1pt;
+    vertical-align: middle;
+    margin-right: 4pt;
+  }
+  .score-cell {
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+  }
+
+  .sev-minor { color: #6b7280; }
+  .sev-moderate { color: #d97706; font-weight: 600; }
+  .sev-major { color: #dc2626; font-weight: 600; }
+  .sev-critical { color: #991b1b; font-weight: 700; }
+
+  .badge {
+    display: inline-block;
+    padding: 1pt 5pt;
+    border-radius: 8pt;
+    font-size: 7.5pt;
+    font-weight: 600;
+  }
+  .badge-agree { background: #d1fae5; color: #065f46; }
+  .badge-mostly_agree { background: #dbeafe; color: #1e40af; }
+  .badge-mixed { background: #fef3c7; color: #92400e; }
+  .badge-mostly_disagree { background: #fed7aa; color: #9a3412; }
+  .badge-disagree { background: #fee2e2; color: #991b1b; }
+
+  blockquote {
+    margin: 2pt 0 4pt 8pt;
+    padding: 2pt 0 2pt 8pt;
+    border-left: 2pt solid #e5e7eb;
+    color: #6b7280;
+    font-style: italic;
+    font-size: 8.5pt;
+  }
+
+  ul { margin: 3pt 0; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+
+  .issue-card {
+    border: 0.5pt solid #e5e7eb;
+    border-radius: 4pt;
+    margin-bottom: 6pt;
+    padding: 5pt 8pt;
+    page-break-inside: avoid;
+  }
+  .issue-card .issue-header {
+    font-weight: 600;
+    font-size: 9pt;
+    margin-bottom: 2pt;
+  }
+  .issue-card .issue-body {
+    font-size: 8.5pt;
+  }
+  .issue-card .suggestion {
+    color: #059669;
+    font-size: 8.5pt;
+    margin-top: 2pt;
+  }
+
+  .page-break { page-break-before: always; }
+  .no-break { page-break-inside: avoid; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { padding: 0; }
+  }
+  @media screen {
+    body { padding: 15mm; max-width: 210mm; margin: 0 auto; background: #f8f9fa; }
+    .print-hint {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: #6366f1; color: white; padding: 8pt 16pt;
+      text-align: center; font-size: 10pt; z-index: 100;
+    }
+    .print-hint a { color: white; margin-left: 12pt; text-decoration: underline; }
+  }
+</style>
+</head>
+<body>
+
+{% if not is_pdf %}
+<div class="print-hint no-print">
+  {% if is_ru %}
+  Используйте Ctrl+P / Cmd+P для сохранения в PDF
+  <a href="javascript:window.print()">Печать</a>
+  <a href="javascript:window.close()">Закрыть</a>
+  {% else %}
+  Use Ctrl+P / Cmd+P to save as PDF
+  <a href="javascript:window.print()">Print</a>
+  <a href="javascript:window.close()">Close</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% set pa = report.primary_analysis %}
+{% set qs = pa.quality_scores %}
+{% set det = report.deterministic %}
+{% set is_ru = report.language == 'ru' %}
+
+<!-- Header -->
+<div class="header">
+  <h1>
+    <span class="score-badge">{{ "%.1f"|format(qs.overall) }}</span>
+    {% if is_ru %}Критический разбор прозы{% else %}Prose Critique Report{% endif %}
+  </h1>
+  <div class="header-meta">
+    <span>{% if is_ru %}Язык{% else %}Language{% endif %}: <strong>{{ report.language|upper }}</strong></span>
+    <span>{% if is_ru %}Символов{% else %}Characters{% endif %}: <strong>{{ report.input_char_count }}</strong></span>
+    <span>{% if is_ru %}Дата{% else %}Date{% endif %}: <strong>{{ report.timestamp[:19] }}</strong></span>
+    {% if report.duration_ms %}
+    <span>{% if is_ru %}Длительность{% else %}Duration{% endif %}: <strong>{{ "%.1f"|format(report.duration_ms / 1000) }}s</strong></span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Input Text -->
+{% if report.input_text %}
+<div class="no-break">
+  <h2>{% if is_ru %}Исходный текст{% else %}Input Text{% endif %}</h2>
+  <pre class="text-block">{{ report.input_text }}</pre>
+</div>
+{% endif %}
+
+<!-- Text Overview -->
+<div class="no-break">
+  <h2>{% if is_ru %}Обзор текста{% else %}Text Overview{% endif %}</h2>
+  <table>
+    <tr><td style="width:30%"><strong>{% if is_ru %}Жанр{% else %}Genre{% endif %}</strong></td><td>{{ pa.text_overview.genre_guess }}</td></tr>
+    <tr><td><strong>{% if is_ru %}Тон{% else %}Tone{% endif %}</strong></td><td>{{ pa.text_overview.tone }}</td></tr>
+    <tr><td><strong>{% if is_ru %}Аудитория{% else %}Audience{% endif %}</strong></td><td>{{ pa.text_overview.apparent_audience }}</td></tr>
+    <tr><td><strong>{% if is_ru %}Слов / Абзацев{% else %}Words / Paragraphs{% endif %}</strong></td><td>{{ pa.text_overview.word_count }} / {{ pa.text_overview.paragraph_count }}</td></tr>
+  </table>
+</div>
+
+<!-- Quality Scores -->
+<div class="no-break">
+  <h2>{% if is_ru %}Оценки качества{% else %}Quality Scores{% endif %}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30%">{% if is_ru %}Метрика{% else %}Metric{% endif %}</th>
+        <th style="width:15%">{% if is_ru %}Оценка{% else %}Score{% endif %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>{% if is_ru %}Ясность{% else %}Clarity{% endif %}</strong></td><td>{{ "%.1f"|format(qs.clarity) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.clarity / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr><td><strong>{% if is_ru %}Лаконичность{% else %}Conciseness{% endif %}</strong></td><td>{{ "%.1f"|format(qs.conciseness) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.conciseness / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr><td><strong>{% if is_ru %}Яркость{% else %}Vividness{% endif %}</strong></td><td>{{ "%.1f"|format(qs.vividness) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.vividness / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr><td><strong>{% if is_ru %}Оригинальность{% else %}Originality{% endif %}</strong></td><td>{{ "%.1f"|format(qs.originality) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.originality / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr><td><strong>{% if is_ru %}Связность{% else %}Coherence{% endif %}</strong></td><td>{{ "%.1f"|format(qs.coherence) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.coherence / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr><td><strong>{% if is_ru %}Вовлечённость{% else %}Engagement{% endif %}</strong></td><td>{{ "%.1f"|format(qs.engagement) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.engagement / 10 * 80)|int }}pt"></div></div></td></tr>
+      <tr class="total-row"><td><strong>{% if is_ru %}Общая оценка{% else %}Overall{% endif %}</strong></td><td>{{ "%.1f"|format(qs.overall) }} / 10</td><td><div class="score-cell"><div class="score-bar" style="width:{{ (qs.overall / 10 * 80)|int }}pt"></div></div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Structural Outline -->
+{% if pa.structural_outline %}
+<div class="no-break">
+  <h2>{% if is_ru %}Структура текста{% else %}Structural Outline{% endif %}</h2>
+  {% for item in pa.structural_outline %}
+  <p><strong>{% if is_ru %}Абз.{% else %}Para.{% endif %} {{ item.paragraph_index }}:</strong> <em>{{ item.intent }}</em><br>{{ item.summary }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Local Issues -->
+{% if pa.local_issues %}
+<h2 class="page-break">{% if is_ru %}Локальные проблемы{% else %}Local Issues{% endif %} ({{ pa.local_issues|length }})</h2>
+{% for issue in pa.local_issues %}
+<div class="issue-card">
+  <div class="issue-header">
+    <span class="sev-{{ issue.severity }}">
+      {% if issue.severity == 'critical' %}[!!!]{% elif issue.severity == 'major' %}[!!]{% elif issue.severity == 'moderate' %}[!]{% else %}[.]{% endif %}
+    </span>
+    #{{ loop.index }} [{{ issue.issue_type }}] — {% if is_ru %}Абз.{% else %}Para.{% endif %} {{ issue.paragraph_index }}
+  </div>
+  <div class="issue-body">
+    {% if issue.sentence %}<blockquote>{{ issue.sentence[:200] }}</blockquote>{% endif %}
+    {{ issue.description }}
+    {% if issue.suggestion %}<div class="suggestion">{% if is_ru %}Рекомендация{% else %}Suggestion{% endif %}: {{ issue.suggestion }}</div>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Global Issues -->
+{% if pa.global_issues %}
+<div class="no-break">
+  <h2>{% if is_ru %}Глобальные проблемы{% else %}Global Issues{% endif %} ({{ pa.global_issues|length }})</h2>
+  {% for issue in pa.global_issues %}
+  <div class="issue-card">
+    <div class="issue-header">
+      <span class="sev-{{ issue.severity }}">
+        {% if issue.severity == 'critical' %}[!!!]{% elif issue.severity == 'major' %}[!!]{% elif issue.severity == 'moderate' %}[!]{% else %}[.]{% endif %}
+      </span>
+      #{{ loop.index }} [{{ issue.category }}]
+    </div>
+    <div class="issue-body">
+      {{ issue.description }}
+      {% if issue.evidence %}<blockquote>{{ issue.evidence[:200] }}</blockquote>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Cliché Detection -->
+{% if pa.cliche_detection %}
+<div class="no-break">
+  <h2>{% if is_ru %}Клише и штампы{% else %}Clichés{% endif %} ({{ pa.cliche_detection|length }})</h2>
+  <table>
+    <thead><tr><th>{% if is_ru %}Фраза{% else %}Phrase{% endif %}</th><th>{% if is_ru %}Место{% else %}Location{% endif %}</th><th>{% if is_ru %}Рекомендация{% else %}Suggestion{% endif %}</th></tr></thead>
+    <tbody>
+    {% for cl in pa.cliche_detection %}
+    <tr><td><strong>"{{ cl.phrase }}"</strong></td><td>{{ cl.location }}</td><td>{{ cl.suggestion }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Reader Questions -->
+{% if pa.reader_questions %}
+<div class="no-break">
+  <h2>{% if is_ru %}Вопросы читателя{% else %}Reader Questions{% endif %} ({{ pa.reader_questions|length }})</h2>
+  <ul>
+  {% for rq in pa.reader_questions %}
+    <li><strong>{{ rq.question }}</strong> ({{ rq.location }}) [{{ rq.type }}]</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Strengths -->
+{% if pa.strengths %}
+<div class="no-break">
+  <h2>{% if is_ru %}Сильные стороны{% else %}Strengths{% endif %}</h2>
+  <ul>
+  {% for s in pa.strengths %}
+    <li>{{ s }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Improvement Suggestions -->
+{% if pa.improvement_suggestions %}
+<div class="no-break">
+  <h2>{% if is_ru %}Рекомендации по улучшению{% else %}Improvement Suggestions{% endif %}</h2>
+  {% for sug in pa.improvement_suggestions %}
+  <div class="issue-card">
+    <div class="issue-header"><span class="sev-{{ sug.priority }}">[{{ sug.priority }}]</span> {{ sug.category }}</div>
+    <div class="issue-body">{{ sug.suggestion }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Summary -->
+{% if pa.summary %}
+<div class="no-break">
+  <h2>{% if is_ru %}Итоговое заключение{% else %}Summary{% endif %}</h2>
+  <p>{{ pa.summary }}</p>
+</div>
+{% endif %}
+
+<!-- Deterministic Pre-Analysis -->
+<div class="no-break">
+  <h2>{% if is_ru %}Детерминированный анализ{% else %}Deterministic Pre-Analysis{% endif %}</h2>
+  <table>
+    <tr><td><strong>{% if is_ru %}Средняя длина предложения{% else %}Avg sentence length{% endif %}</strong></td><td>{{ det.readability.avg_sentence_length }} {% if is_ru %}слов{% else %}words{% endif %}</td></tr>
+    <tr><td><strong>{% if is_ru %}Длинных предложений (>25){% else %}Long sentences (>25){% endif %}</strong></td><td>{{ det.readability.long_sentence_count }}</td></tr>
+    <tr><td><strong>{% if is_ru %}Богатство словаря{% else %}Vocabulary richness{% endif %}</strong></td><td>{{ "%.4f"|format(det.readability.vocabulary_richness) }}</td></tr>
+    {% if det.readability.flesch_reading_ease is not none %}
+    <tr><td><strong>Flesch Reading Ease</strong></td><td>{{ det.readability.flesch_reading_ease }}</td></tr>
+    {% endif %}
+  </table>
+  {% if det.repetitions %}
+  <h3>{% if is_ru %}Повторы{% else %}Repetitions{% endif %}</h3>
+  <ul>
+  {% for rep in det.repetitions[:10] %}
+    <li>"{{ rep.phrase }}" &times;{{ rep.count }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+<!-- Audit -->
+{% if report.audit %}
+{% set a = report.audit %}
+<h2 class="page-break">{% if is_ru %}Аудит критики{% else %}Audit of Critique{% endif %}</h2>
+
+<div class="no-break">
+  {% set v = a.audit_verdict %}
+  {% set verdict_map = {
+    'agree': ('Согласен — Критика точна и обоснована.' if is_ru else 'Agree — Critique is accurate and well-founded.'),
+    'mostly_agree': ('В основном согласен — Критика в целом верна, мелкие замечания.' if is_ru else 'Mostly Agree — Generally correct, minor issues.'),
+    'mixed': ('Смешанно — Частично верна, есть проблемные утверждения.' if is_ru else 'Mixed — Partially correct, some problematic claims.'),
+    'mostly_disagree': ('В основном не согласен — Большая часть критики проблемна.' if is_ru else 'Mostly Disagree — Most of the critique is problematic.'),
+    'disagree': ('Не согласен — Критика неточна, содержит галлюцинации.' if is_ru else 'Disagree — Inaccurate, contains hallucinations.')
+  } %}
+  <p>
+    <strong>{% if is_ru %}Вердикт{% else %}Verdict{% endif %}:</strong>
+    <span class="badge badge-{{ v }}">{{ v }}</span>
+    {{ verdict_map.get(v, v) }}
+  </p>
+  <p>
+    <strong>{% if is_ru %}Уверенность аудитора{% else %}Auditor Confidence{% endif %}:</strong>
+    {{ "%.2f"|format(a.confidence_score) }}
+    ({% if is_ru %}шкала 0.0–1.0, где 1.0 = полная уверенность{% else %}scale 0.0–1.0, where 1.0 = full confidence{% endif %})
+  </p>
+
+  {% if a.disagreements %}
+  <h3>{% if is_ru %}Разногласия{% else %}Disagreements{% endif %}</h3>
+  {% for dis in a.disagreements %}
+  <div class="issue-card">
+    <div class="issue-header"><span class="sev-{{ dis.severity }}">[{{ dis.severity }}]</span> {{ dis.claim[:100] }}</div>
+    <div class="issue-body">{{ dis.issue }}{% if dis.evidence %}<blockquote>{{ dis.evidence[:200] }}</blockquote>{% endif %}</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if a.hallucinations %}
+  <h3>{% if is_ru %}Галлюцинации{% else %}Hallucinations{% endif %}</h3>
+  <ul>
+  {% for h in a.hallucinations %}
+    <li><strong>{{ h.claim }}</strong>: {{ h.why_hallucinated }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if a.missed_issues %}
+  <h3>{% if is_ru %}Пропущенные проблемы{% else %}Missed Issues{% endif %}</h3>
+  <ul>
+  {% for mi in a.missed_issues %}
+    <li>{{ mi.description }}{% if mi.evidence %}<blockquote>{{ mi.evidence[:200] }}</blockquote>{% endif %}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if a.weak_critiques %}
+  <h3>{% if is_ru %}Слабые пункты критики{% else %}Weak Critique Points{% endif %}</h3>
+  <ul>
+  {% for wc in a.weak_critiques %}
+    <li><strong>{{ wc.claim }}</strong>: {{ wc.why_weak }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if a.summary %}
+  <h3>{% if is_ru %}Резюме аудита{% else %}Audit Summary{% endif %}</h3>
+  <p>{{ a.summary }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- LLM Calls -->
+{% if report.llm_calls %}
+<div class="no-break">
+  <h2>{% if is_ru %}Метаданные вызовов LLM{% else %}LLM Calls Metadata{% endif %}</h2>
+  <table>
+    <thead><tr><th>Call ID</th><th>Model</th><th>Tokens In</th><th>Tokens Out</th><th>Duration</th><th>Cached</th></tr></thead>
+    <tbody>
+    {% for c in report.llm_calls %}
+    <tr>
+      <td>{{ c.call_id }}</td>
+      <td>{{ c.model }}</td>
+      <td>{{ c.input_tokens if c.input_tokens else '—' }}</td>
+      <td>{{ c.output_tokens if c.output_tokens else '—' }}</td>
+      <td>{{ "%.1f"|format(c.duration_ms / 1000) if c.duration_ms else '—' }}s</td>
+      <td>{{ '✓' if c.cached else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Generated Prompt (collapsible on screen) -->
+{% if report.generated_prompt %}
+<h2 class="page-break">{% if is_ru %}Сгенерированный промпт{% else %}Generated Prompt{% endif %}</h2>
+<pre class="text-block prompt-block">{{ report.generated_prompt }}</pre>
+{% endif %}
+
+<!-- Footer -->
+<div style="margin-top: 16pt; padding-top: 8pt; border-top: 0.5pt solid #e5e7eb; font-size: 8pt; color: #9ca3af; text-align: center;">
+  Generated by prose-critique v{{ report.version }} · {{ run_id }}
+</div>
+
+</body>
+</html>

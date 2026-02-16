@@ -21,7 +21,6 @@
     const logText = document.getElementById("log-text");
     const runsList = document.getElementById("runs-list");
     const exportActions = document.getElementById("export-actions");
-    const pdfBtn = document.getElementById("pdf-btn");
 
     let currentRunId = null;
     let pollTimer = null;
@@ -102,34 +101,14 @@
         } catch (e) { /* ignore */ }
     });
 
-    /* ── PDF Export ───────────────────────────────────────────── */
-    pdfBtn.addEventListener("click", async () => {
-        if (!reportContent || !reportContent.innerHTML) return;
-        
-        pdfBtn.disabled = true;
-        pdfBtn.textContent = "Generating PDF...";
-        
-        try {
-            const opt = {
-                margin: 15,
-                filename: 'prose-critique-report-' + (currentRunId || Date.now()) + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            
-            // Clone report content and remove no-print elements
-            const clone = reportContent.cloneNode(true);
-            clone.querySelectorAll('.no-print').forEach(el => el.remove());
-            
-            await html2pdf().set(opt).from(clone).save();
-        } catch (e) {
-            alert("PDF generation failed: " + e.message);
-        } finally {
-            pdfBtn.disabled = false;
-            pdfBtn.textContent = "📄 PDF";
-        }
-    });
+    /* ── Export links update ─────────────────────────────────── */
+    const BASE = (typeof URL_PREFIX !== "undefined" ? URL_PREFIX : "");
+    function updateExportLinks(runId) {
+        const pdfBtn = document.getElementById("pdf-btn");
+        const printBtn = document.getElementById("print-btn");
+        if (pdfBtn) pdfBtn.href = BASE + "/api/run/" + runId + "/pdf";
+        if (printBtn) printBtn.href = BASE + "/run/" + runId + "/print";
+    }
 
     /* ── Poll status ──────────────────────────────────────────── */
     function pollStatus() {
@@ -175,8 +154,8 @@
 
             if (data.markdown) {
                 reportContent.innerHTML = renderMarkdown(data.markdown);
-                // Show export buttons
                 exportActions.style.display = "block";
+                updateExportLinks(runId);
             }
             if (data.json_report) {
                 jsonTree.innerHTML = "";
@@ -218,6 +197,7 @@
             runsList.querySelectorAll(".run-item").forEach(el => {
                 el.addEventListener("click", () => {
                     const rid = el.dataset.runId;
+                    currentRunId = rid;
                     loadResult(rid);
                     // switch to report tab
                     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));

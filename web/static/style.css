@@ -175,10 +175,12 @@ textarea:focus { outline: none; border-color: var(--accent); }
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-muted);
+    text-decoration: none;
+    display: inline-block;
 }
 .btn-secondary:hover:not(:disabled) {
-    border-color: var(--danger);
-    color: var(--danger);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 

@@ -13,6 +13,7 @@ from typing import Optional
 
 from flask import (
     Flask, render_template, request, jsonify, Blueprint,
+    make_response, redirect, url_for, abort,
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -172,6 +173,69 @@ def get_log(run_id: str):
     if content:
         return jsonify({"run_id": run_id, "content": content})
     return jsonify({"error": "Log not found."}), 404
+
+
+@bp.route("/run/<run_id>/print")
+def run_print(run_id: str):
+    """Print-optimized view of a run — A4 layout with all sections."""
+    report_data = _load_report_data(run_id)
+    if not report_data:
+        abort(404, "Run not found or no results available")
+    return render_template(
+        "print_report.html",
+        report=report_data,
+        run_id=run_id,
+        is_ru=report_data.get("language") == "ru",
+        is_pdf=False,
+    )
+
+
+@bp.route("/api/run/<run_id>/pdf")
+def run_pdf(run_id: str):
+    """Download PDF report.
+
+    Uses WeasyPrint if available; otherwise redirects to the print view.
+    """
+    report_data = _load_report_data(run_id)
+    if not report_data:
+        return jsonify({"error": "Run not found or no results available"}), 404
+
+    html = render_template(
+        "print_report.html",
+        report=report_data,
+        run_id=run_id,
+        is_ru=report_data.get("language") == "ru",
+        is_pdf=True,
+    )
+
+    try:
+        import weasyprint
+        pdf_bytes = weasyprint.HTML(string=html).write_pdf()
+        response = make_response(pdf_bytes)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = (
+            f'attachment; filename="prose_critique_{run_id}.pdf"'
+        )
+        return response
+    except ImportError:
+        return redirect(url_for("main.run_print", run_id=run_id))
+    except Exception:
+        return redirect(url_for("main.run_print", run_id=run_id))
+
+
+def _load_report_data(run_id: str) -> dict | None:
+    """Load report data from active runs or saved files."""
+    with _active_runs_lock:
+        info = _active_runs.get(run_id, {})
+
+    if info.get("status") == "completed" and info.get("json_report"):
+        return info["json_report"]
+
+    run_file = RUNS_DIR / f"{run_id}.json"
+    if run_file.exists():
+        return json.loads(run_file.read_text(encoding="utf-8"))
+
+    return None
 
 
 def _run_pipeline_in_thread(
